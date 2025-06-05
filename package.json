@@ -1,0 +1,21 @@
+{
+  "name": "toolkit",
+  "version": "1.0.0",
+  "description": "A monorepo toolkit for frontend solutions",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "start": "lerna bootstrap",
+    "build": "lerna run build",
+    "clean": "lerna clean",
+    "test": "lerna run test"
+  },
+  "keywords": ["monorepo", "toolkit", "lerna"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "lerna": "^8.2.2"
+  }
+}

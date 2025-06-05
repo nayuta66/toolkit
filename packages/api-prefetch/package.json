@@ -1,0 +1,17 @@
+{
+  "name": "@toolkit/api-prefetch",
+  "version": "1.0.0",
+  "description": "A webpack plugin for API prefetching to optimize page load performance",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "node build.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": ["webpack", "plugin", "api", "prefetch", "performance"],
+  "author": "",
+  "license": "MIT",
+  "peerDependencies": {
+    "webpack": "^4.0.0 || ^5.0.0",
+    "html-webpack-plugin": "^4.0.0 || ^5.0.0"
+  }
+}
