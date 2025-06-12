@@ -17,16 +17,6 @@ module.exports = {
         { 
           url: '/api/user/info', 
           method: 'GET' 
-        },
-        { 
-          url: '/api/config', 
-          method: 'GET' 
-        },
-        { 
-          url: '/api/data', 
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: { page: 1, size: 10 }
         }
       ],
       injectTo: 'head',

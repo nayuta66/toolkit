@@ -9,9 +9,4 @@ setTimeout(() => {
     .then(res => res.json())
     .then(data => console.log('User info:', data))
     .catch(err => console.error('Error fetching user info:', err));
-    
-  fetch('/api/config')
-    .then(res => res.json())
-    .then(data => console.log('Config:', data))
-    .catch(err => console.error('Error fetching config:', err));
 }, 2000); 
