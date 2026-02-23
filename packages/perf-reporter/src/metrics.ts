@@ -1,7 +1,7 @@
 import { MetricEntry, MetricName, MetricCallback, THRESHOLDS } from './types';
 
 // ---------------------------------------------------------------------------
-// Helpers
+// 工具函数
 // ---------------------------------------------------------------------------
 
 function rate(name: MetricName, value: number): MetricEntry['rating'] {
@@ -29,8 +29,8 @@ function onHidden(fn: () => void): () => void {
 }
 
 /**
- * Track when the page was first hidden.
- * Metrics observed after the page is hidden (background tab) are unreliable.
+ * 记录页面首次隐藏的时间。
+ * 页面隐藏（后台标签页）后采集的指标不可靠。
  */
 function initFirstHiddenTime(): { value: number } {
   const state = {
@@ -49,8 +49,8 @@ function initFirstHiddenTime(): { value: number } {
 }
 
 /**
- * For prerendered pages, activationStart marks when the user actually saw the page.
- * LCP/FCP/TTFB should be relative to this instead of navigationStart.
+ * 对于预渲染页面，activationStart 标记用户实际看到页面的时间。
+ * LCP/FCP/TTFB 应以此为基准，而非 navigationStart。
  */
 function getActivationStart(): number {
   const nav = performance.getEntriesByType('navigation')[0] as
@@ -59,12 +59,12 @@ function getActivationStart(): number {
 }
 
 // ---------------------------------------------------------------------------
-// Public API
+// 公开 API
 // ---------------------------------------------------------------------------
 
 /**
- * Start observing all Core Web Vitals.
- * Returns a cleanup function that disconnects all observers and listeners.
+ * 开始观测所有 Core Web Vitals 指标。
+ * 返回一个清理函数，调用后断开所有观察者和监听器。
  */
 export function observeMetrics(cb: MetricCallback): () => void {
   const cleanups: Array<() => void> = [];
@@ -80,7 +80,7 @@ export function observeMetrics(cb: MetricCallback): () => void {
 }
 
 // ---------------------------------------------------------------------------
-// TTFB — from navigation timing, adjusted for prerendered pages
+// TTFB —— 基于导航计时，已针对预渲染页面校正
 // ---------------------------------------------------------------------------
 
 function collectTTFB(cb: MetricCallback): void {
@@ -92,11 +92,11 @@ function collectTTFB(cb: MetricCallback): void {
       const value = Math.max(nav.responseStart - activationStart, 0);
       emit('TTFB', value, cb);
     }
-  } catch { /* unsupported */ }
+  } catch { /* 不支持 */ }
 }
 
 // ---------------------------------------------------------------------------
-// FCP — only valid if page was visible when paint occurred
+// FCP —— 仅在绘制发生时页面可见的情况下有效
 // ---------------------------------------------------------------------------
 
 function collectFCP(
@@ -117,13 +117,13 @@ function collectFCP(
     });
     obs.observe({ type: 'paint', buffered: true });
     cleanups.push(() => obs.disconnect());
-  } catch { /* unsupported */ }
+  } catch { /* 不支持 */ }
 }
 
 // ---------------------------------------------------------------------------
-// LCP — finalized on first trusted user input or page hide.
-// Scroll is excluded (can be programmatic).
-// See: https://github.com/GoogleChrome/web-vitals/issues/75
+// LCP —— 在首次可信用户输入或页面隐藏时确定最终值。
+// 排除了滚动事件（可能由程序触发）。
+// 参考：https://github.com/GoogleChrome/web-vitals/issues/75
 // ---------------------------------------------------------------------------
 
 function collectLCP(
@@ -174,12 +174,12 @@ function collectLCP(
       });
       removeHidden();
     });
-  } catch { /* unsupported */ }
+  } catch { /* 不支持 */ }
 }
 
 // ---------------------------------------------------------------------------
-// CLS — session window algorithm per https://web.dev/articles/cls
-// Reports on every page hide to capture the latest value.
+// CLS —— 基于会话窗口算法，参考 https://web.dev/articles/cls
+// 每次页面隐藏时上报，以捕获最新值。
 // ---------------------------------------------------------------------------
 
 function collectCLS(cb: MetricCallback, cleanups: Array<() => void>): void {
@@ -241,14 +241,14 @@ function collectCLS(cb: MetricCallback, cleanups: Array<() => void>): void {
       obs.disconnect();
       removeHidden();
     });
-  } catch { /* unsupported */ }
+  } catch { /* 不支持 */ }
 }
 
 // ---------------------------------------------------------------------------
-// INP — estimates P98 of interaction durations.
-// Uses durationThreshold=40 to match Chrome's 8ms rounding at 60Hz.
-// Falls back to first-input for fast initial interactions.
-// See: https://web.dev/articles/inp
+// INP —— 估算交互时长的 P98 值。
+// 使用 durationThreshold=40 以匹配 Chrome 在 60Hz 下的 8ms 取整。
+// 对于快速初始交互回退到 first-input。
+// 参考：https://web.dev/articles/inp
 // ---------------------------------------------------------------------------
 
 function collectINP(cb: MetricCallback, cleanups: Array<() => void>): void {
@@ -302,5 +302,5 @@ function collectINP(cb: MetricCallback, cleanups: Array<() => void>): void {
       obs.disconnect();
       removeHidden();
     });
-  } catch { /* unsupported */ }
+  } catch { /* 不支持 */ }
 }

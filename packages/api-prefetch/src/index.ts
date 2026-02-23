@@ -3,26 +3,26 @@ import type { Compiler } from 'webpack';
 const PLUGIN_NAME = 'ApiPrefetchPlugin';
 
 export interface ApiConfig {
-  /** API endpoint URL (required) */
+  /** API 端点 URL（必填） */
   url: string;
-  /** HTTP method, defaults to 'GET' */
+  /** HTTP 方法，默认 'GET' */
   method?: string;
-  /** Request headers */
+  /** 请求头 */
   headers?: Record<string, string>;
-  /** Request body (ignored for GET/HEAD) */
+  /** 请求体（GET/HEAD 请求时忽略） */
   body?: unknown;
-  /** Credentials policy, defaults to 'same-origin' */
+  /** 凭证策略，默认 'same-origin' */
   credentials?: 'include' | 'same-origin' | 'omit';
 }
 
 export interface ApiPrefetchPluginOptions {
-  /** List of APIs to prefetch */
+  /** 需要预取的 API 列表 */
   apis?: ApiConfig[];
-  /** Enable or disable the plugin, defaults to true */
+  /** 是否启用插件，默认 true */
   enabled?: boolean;
-  /** Where to inject the prefetch script, defaults to 'head' */
+  /** 预取脚本注入位置，默认 'head' */
   injectTo?: 'head' | 'body';
-  /** Global cache key on window, defaults to '__PREFETCH_CACHE__' */
+  /** window 上的全局缓存键名，默认 '__PREFETCH_CACHE__' */
   cacheKey?: string;
 }
 

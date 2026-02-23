@@ -1,13 +1,13 @@
 export interface PerfReporterOptions {
-  /** Endpoint URL to send metrics to */
+  /** 指标上报的目标 URL */
   endpoint: string;
-  /** Sampling rate between 0 and 1, defaults to 1 (100%) */
+  /** 采样率，取值 0 到 1，默认 1（100%） */
   sampleRate?: number;
-  /** Extra dimensions attached to every report */
+  /** 附加到每次上报的额外维度信息 */
   extra?: Record<string, unknown>;
-  /** Report each metric immediately instead of batching on page hide */
+  /** 立即上报每个指标，而非在页面隐藏时批量上报 */
   immediate?: boolean;
-  /** Log metrics to console for debugging */
+  /** 在控制台打印指标，用于调试 */
   debug?: boolean;
 }
 
@@ -39,7 +39,7 @@ export type MetricName = 'LCP' | 'FCP' | 'CLS' | 'INP' | 'TTFB';
 
 export type MetricCallback = (entry: MetricEntry) => void;
 
-/** [good, poor] thresholds per Google's Web Vitals standards */
+/** 基于 Google Web Vitals 标准的 [good, poor] 阈值 */
 export const THRESHOLDS: Record<MetricName, [number, number]> = {
   LCP:  [2500, 4000],
   FCP:  [1800, 3000],

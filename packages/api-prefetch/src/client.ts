@@ -1,16 +1,16 @@
 export interface GetPrefetchDataOptions {
-  /** Global cache key on window, defaults to '__PREFETCH_CACHE__' */
+  /** window 上的全局缓存键名，默认 '__PREFETCH_CACHE__' */
   cacheKey?: string;
-  /** Timeout in ms, defaults to 5000. Set to 0 to disable. */
+  /** 超时时间（毫秒），默认 5000。设为 0 可禁用超时。 */
   timeout?: number;
 }
 
 const DEFAULT_CACHE_KEY = '__PREFETCH_CACHE__';
 
 /**
- * Retrieve prefetched API data from cache.
- * Returns a Promise resolving with the data, or null if no cache entry exists.
- * The cache entry is consumed (deleted) after reading.
+ * 从缓存中获取预取的 API 数据。
+ * 返回一个 Promise，解析为数据本身；若无缓存条目则返回 null。
+ * 读取后缓存条目会被消费（删除）。
  */
 export function getPrefetchData<T = unknown>(
   url: string,

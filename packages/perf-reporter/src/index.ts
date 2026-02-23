@@ -8,18 +8,18 @@ let history: MetricEntry[] = [];
 let cleanup: (() => void) | null = null;
 
 /**
- * Initialize the performance reporter.
- * Automatically collects Core Web Vitals (LCP, FCP, CLS, INP, TTFB)
- * and reports them to the specified endpoint.
+ * 初始化性能上报器。
+ * 自动采集 Core Web Vitals（LCP、FCP、CLS、INP、TTFB）
+ * 并上报到指定的端点。
  *
- * @returns A teardown function that stops collection and flushes remaining metrics.
+ * @returns 销毁函数，调用后停止采集并上报剩余指标。
  */
 export function initPerfReporter(options: PerfReporterOptions): () => void {
   if (typeof window === 'undefined' || typeof document === 'undefined') {
     return () => {};
   }
   if (initialized) {
-    console.warn('[perf-reporter] Already initialized.');
+    console.warn('[perf-reporter] 已初始化，请勿重复调用。');
     return () => {};
   }
 
@@ -64,8 +64,8 @@ export function initPerfReporter(options: PerfReporterOptions): () => void {
 }
 
 /**
- * Manually report a custom metric.
- * Must be called after `initPerfReporter()`.
+ * 手动上报自定义指标。
+ * 必须在 `initPerfReporter()` 之后调用。
  */
 export function reportMetric(
   name: string,
@@ -73,7 +73,7 @@ export function reportMetric(
   rating: MetricEntry['rating'] = 'good'
 ): void {
   if (!initialized) {
-    console.warn('[perf-reporter] Not initialized. Call initPerfReporter() first.');
+    console.warn('[perf-reporter] 尚未初始化，请先调用 initPerfReporter()。');
     return;
   }
   const entry: MetricEntry = { name, value, rating, timestamp: Date.now() };
@@ -86,7 +86,7 @@ export function reportMetric(
 }
 
 /**
- * Get all collected metrics since initialization (unaffected by flush).
+ * 获取自初始化以来采集的所有指标（不受 flush 影响）。
  */
 export function getMetrics(): MetricEntry[] {
   return [...history];
