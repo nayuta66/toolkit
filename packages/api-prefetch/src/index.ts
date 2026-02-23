@@ -9,16 +9,23 @@ export type { ApiConfig, BuildContext, PrefetchConfigExport } from './config';
 
 export interface ApiPrefetchPluginOptions {
   /**
-   * 需要预取的 API 列表（直接配置方式）。
+   * 需要预取的 API 列表（直接配置方式，所有页面共用）。
    * 与 configFile 二选一；若同时提供，configFile 优先。
    */
   apis?: ApiConfig[];
   /**
-   * 业务层配置文件路径。支持两种写法：
-   * - 导出风格：module.exports = definePrefetchConfig([...]) 或 (ctx) => [...]
-   * - 函数调用风格：直接调用 prefetch()，无需导出
+   * 业务层配置文件路径。
+   *
+   * - string：所有页面共用一个配置文件
+   *   configFile: './src/prefetch.config.js'
+   *
+   * - Record<string, string>：MPA 模式，每个 HTML 页面映射独立的配置文件
+   *   configFile: {
+   *     'index.html': './src/pages/home/prefetch.config.js',
+   *     'about.html': './src/pages/about/prefetch.config.js',
+   *   }
    */
-  configFile?: string;
+  configFile?: string | Record<string, string>;
   /** 是否启用插件，默认 true */
   enabled?: boolean;
   /** 预取脚本注入位置，默认 'head' */
@@ -29,7 +36,6 @@ export interface ApiPrefetchPluginOptions {
 
 interface NormalizedOptions {
   apis: ApiConfig[];
-  configFile?: string;
   enabled: boolean;
   injectTo: 'head' | 'body';
   cacheKey: string;
@@ -47,27 +53,38 @@ interface NormalizedOptions {
  */
 export class ApiPrefetchPlugin {
   private options: NormalizedOptions;
-  private resolvedConfigPath: string | null = null;
+  /** entry → 绝对路径 映射；'*' 表示所有页面共用 */
+  private configPaths: Record<string, string> = {};
+  private rawConfigFile: string | Record<string, string> | undefined;
 
   constructor(options: ApiPrefetchPluginOptions = {}) {
+    const { configFile, ...rest } = options;
+    this.rawConfigFile = configFile;
     this.options = {
       apis: [],
       enabled: true,
       injectTo: 'head',
       cacheKey: '__PREFETCH_CACHE__',
-      ...options,
+      ...rest,
     };
   }
 
   apply(compiler: Compiler): void {
     if (!this.options.enabled) return;
 
-    // 提前解析配置文件的绝对路径
-    if (this.options.configFile) {
+    // 解析配置文件路径：string → 所有页面共用；Record → 按页面映射
+    if (this.rawConfigFile) {
       const nodePath = require('path') as typeof import('path');
-      this.resolvedConfigPath = nodePath.isAbsolute(this.options.configFile)
-        ? this.options.configFile
-        : nodePath.resolve(compiler.context, this.options.configFile);
+      const resolve = (p: string) =>
+        nodePath.isAbsolute(p) ? p : nodePath.resolve(compiler.context, p);
+
+      if (typeof this.rawConfigFile === 'string') {
+        this.configPaths['*'] = resolve(this.rawConfigFile);
+      } else {
+        for (const [entry, filePath] of Object.entries(this.rawConfigFile)) {
+          this.configPaths[entry] = resolve(filePath);
+        }
+      }
     }
 
     const mode = compiler.options.mode || 'none';
@@ -118,7 +135,9 @@ export class ApiPrefetchPlugin {
    * 3. 构造函数中直接传入的 apis
    */
   private resolveApis(entry: string, mode: string): ApiConfig[] {
-    if (!this.resolvedConfigPath) return this.options.apis;
+    // 按优先级查找：精确匹配 entry → 通配符 '*'（共用配置）→ 回退到 apis 选项
+    const configPath = this.configPaths[entry] || this.configPaths['*'];
+    if (!configPath) return this.options.apis;
 
     const ctx: BuildContext = {
       entry,
@@ -128,21 +147,19 @@ export class ApiPrefetchPlugin {
 
     // 激活收集器 → 执行配置文件 → 回收结果
     this.startCollecting(ctx);
-    delete require.cache[this.resolvedConfigPath];
+    delete require.cache[configPath];
     let loaded: any;
     try {
-      loaded = require(this.resolvedConfigPath);
+      loaded = require(configPath);
     } catch (e) {
-      console.error(`[${PLUGIN_NAME}] 无法加载配置文件: ${this.resolvedConfigPath}`, e);
+      console.error(`[${PLUGIN_NAME}] 无法加载配置文件: ${configPath}`, e);
       this.stopCollecting();
       return this.options.apis;
     }
     const collected = this.stopCollecting();
 
-    // 优先使用 prefetch() 调用收集到的结果
     if (collected.length > 0) return collected;
 
-    // 回退到导出风格
     const exported = loaded?.default ?? loaded;
     if (typeof exported === 'function') return exported(ctx);
     if (Array.isArray(exported)) return exported;

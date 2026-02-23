@@ -15,17 +15,30 @@ const MOCK_SETTINGS = {
 };
 
 module.exports = {
-  entry: './src/index.js',
+  entry: {
+    home: './src/index.js',
+    about: './src/about.js',
+  },
   output: {
     path: path.resolve(__dirname, 'dist'),
-    filename: 'bundle.js',
+    filename: '[name].bundle.js',
   },
   plugins: [
     new HtmlWebpackPlugin({
       template: './src/index.html',
+      filename: 'index.html',
+      chunks: ['home'],
+    }),
+    new HtmlWebpackPlugin({
+      template: './src/about.html',
+      filename: 'about.html',
+      chunks: ['about'],
     }),
     new ApiPrefetchPlugin({
-      configFile: './src/prefetch.config.js',
+      configFile: {
+        'index.html': './src/index.prefetch.js',
+        'about.html': './src/about.prefetch.js',
+      },
       injectTo: 'head',
     }),
   ],
@@ -38,11 +51,14 @@ module.exports = {
         const uid = req.query.userId || '1';
         const token = req.query.token;
         const user = MOCK_USERS[uid] || MOCK_USERS['1'];
-        setTimeout(() => res.json({ ...user, token: token || null }), 150);
+        setTimeout(() => res.json({ ...user, token: token || null }), 200);
       });
       devServer.app.get('/api/settings', (req, res) => {
         const version = req.query.version || '1';
-        setTimeout(() => res.json({ ...MOCK_SETTINGS, version }), 100);
+        setTimeout(() => res.json({ ...MOCK_SETTINGS, version }), 150);
+      });
+      devServer.app.get('/api/about', (_req, res) => {
+        setTimeout(() => res.json({ name: 'Toolkit', version: '1.0.0', author: 'team' }), 120);
       });
       devServer.app.post('/api/metrics', (req, res) => {
         let body = '';

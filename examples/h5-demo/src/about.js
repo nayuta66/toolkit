@@ -1,6 +1,5 @@
 var getPrefetchData = require('@toolkit/api-prefetch/client').getPrefetchData;
 var buildUrl = require('@toolkit/api-prefetch/client').buildUrl;
-var perfReporter = require('@toolkit/perf-reporter');
 
 // ---------------------------------------------------------------------------
 // UI 工具函数
@@ -17,33 +16,13 @@ function log(msg) {
   logEl.scrollTop = logEl.scrollHeight;
 }
 
-function setApiResult(id, text, fromCache) {
+function setResult(id, text, fromCache) {
   var el = document.getElementById(id);
   el.className = 'value good';
   var tag = fromCache
     ? '<span class="source-tag from-cache">prefetch cache</span>'
     : '<span class="source-tag from-fetch">normal fetch</span>';
   el.innerHTML = text + tag;
-}
-
-function renderUserInfo(data) {
-  var container = document.getElementById('user-info');
-  if (!container) return;
-  if (!data) {
-    container.innerHTML = '<div class="row"><span class="label">暂无数据</span></div>';
-    return;
-  }
-  container.innerHTML = Object.keys(data).map(function (key) {
-    return '<div class="row"><span class="label">' + key + '</span><span class="value">' + data[key] + '</span></div>';
-  }).join('');
-}
-
-function updateMetricUI(name, value, rating) {
-  var el = document.getElementById('metric-' + name);
-  if (!el) return;
-  var unit = name === 'CLS' ? '' : ' ms';
-  el.textContent = value + unit;
-  el.className = 'value ' + rating;
 }
 
 // ---------------------------------------------------------------------------
@@ -80,26 +59,14 @@ function renderTimingSummary() {
 }
 
 // ---------------------------------------------------------------------------
-// 从页面 URL 提取参数
-// ---------------------------------------------------------------------------
-
-var urlParams = new URLSearchParams(location.search);
-
-function getUrlParam(name, fallback) {
-  return urlParams.get(name) || fallback;
-}
-
-// ---------------------------------------------------------------------------
 // API 加载 + 耗时对比
 // ---------------------------------------------------------------------------
 
-log('应用启动 — 页面参数: ' + location.search);
+log('关于页启动');
 
 /**
  * 加载 API 并进行耗时对比。
- * 同时跑两条路径：
- *   1. 预取路径 — 消费 window.__PREFETCH_CACHE__（<head> 内联脚本已发起）
- *   2. 基准路径 — 发起全新 fetch 作为对照
+ * 路径 1：消费预取缓存；路径 2：全新 fetch 作为基准对照。
  */
 function loadApi(url, elId, params) {
   var fullUrl = buildUrl(url, params);
@@ -129,7 +96,7 @@ function loadApi(url, elId, params) {
 
     if (data) {
       var preview = JSON.stringify(data).substring(0, 80);
-      setApiResult(elId, preview, fromCache);
+      setResult(elId, preview, fromCache);
     }
 
     renderTimingRow(fullUrl, prefetchResult.ms, benchResult.ms);
@@ -146,70 +113,9 @@ function loadApi(url, elId, params) {
   });
 }
 
-// 启动两个 API 的加载 + 对比，全部完成后渲染汇总
 Promise.all([
-  loadApi('/api/user/info', 'api-user', {
-    userId: getUrlParam('userId', '1'),
-    token: getUrlParam('token', ''),
-  }).then(function (result) {
-    renderUserInfo(result.data);
-  }),
+  loadApi('/api/about', 'api-about'),
   loadApi('/api/settings', 'api-settings', { version: 2 }),
 ]).then(function () {
   renderTimingSummary();
-});
-
-// ---------------------------------------------------------------------------
-// Perf Reporter
-// ---------------------------------------------------------------------------
-
-var teardown = perfReporter.initPerfReporter({
-  endpoint: '/api/metrics',
-  sampleRate: 1,
-  debug: true,
-  immediate: true,
-  extra: { page: 'h5-demo-index', version: '1.0.0' },
-});
-
-log('perf-reporter 已初始化');
-
-var lastSeen = {};
-
-var pollTimer = setInterval(function () {
-  var metrics = perfReporter.getMetrics();
-  metrics.forEach(function (m) {
-    var key = m.name + ':' + m.value;
-    if (lastSeen[m.name] !== key) {
-      var isUpdate = !!lastSeen[m.name];
-      lastSeen[m.name] = key;
-      updateMetricUI(m.name, m.value, m.rating);
-      log(
-        (isUpdate ? '(更新) ' : '') +
-        m.name + ': ' + m.value + (m.name === 'CLS' ? '' : ' ms') +
-        ' (' + m.rating + ')'
-      );
-    }
-  });
-}, 300);
-
-// ---------------------------------------------------------------------------
-// INP 交互测试
-// ---------------------------------------------------------------------------
-
-document.getElementById('btn-interact').addEventListener('click', function () {
-  var start = performance.now();
-  var sum = 0;
-  for (var i = 0; i < 3e6; i++) sum += Math.random();
-  var elapsed = Math.round(performance.now() - start);
-
-  document.getElementById('btn-result').textContent =
-    '阻塞了 ' + elapsed + 'ms（切换标签页查看 INP）';
-
-  perfReporter.reportMetric('click-block-time', elapsed);
-  log('按钮点击，主线程阻塞 ' + elapsed + 'ms');
-});
-
-window.addEventListener('beforeunload', function () {
-  clearInterval(pollTimer);
-  if (teardown) teardown();
 });
