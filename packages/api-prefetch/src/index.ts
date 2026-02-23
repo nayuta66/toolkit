@@ -49,10 +49,12 @@ export class ApiPrefetchPlugin {
   apply(compiler: Compiler): void {
     if (!this.options.enabled) return;
 
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     let HtmlWebpackPlugin: any;
     try {
-      HtmlWebpackPlugin = require('html-webpack-plugin');
+      const resolved = require.resolve('html-webpack-plugin', {
+        paths: [compiler.context],
+      });
+      HtmlWebpackPlugin = require(resolved);
     } catch {
       console.error(
         `[${PLUGIN_NAME}] html-webpack-plugin is required as a peer dependency.`
