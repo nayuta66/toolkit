@@ -1,8 +1,9 @@
 var getPrefetchData = require('@toolkit/api-prefetch/client').getPrefetchData;
+var buildUrl = require('@toolkit/api-prefetch/client').buildUrl;
 var perfReporter = require('@toolkit/perf-reporter');
 
 // ---------------------------------------------------------------------------
-// UI helpers
+// UI 工具函数
 // ---------------------------------------------------------------------------
 
 var logEl = document.getElementById('log');
@@ -28,7 +29,7 @@ function setApiResult(id, text, fromCache) {
 function renderUserInfo(data) {
   var container = document.getElementById('user-info');
   if (!data) {
-    container.innerHTML = '<div class="row"><span class="label">No data</span></div>';
+    container.innerHTML = '<div class="row"><span class="label">暂无数据</span></div>';
     return;
   }
   container.innerHTML = Object.keys(data).map(function (key) {
@@ -45,39 +46,64 @@ function updateMetricUI(name, value, rating) {
 }
 
 // ---------------------------------------------------------------------------
-// 1. API Prefetch demo
+// 从页面 URL 提取参数
 // ---------------------------------------------------------------------------
 
-log('App started');
+var urlParams = new URLSearchParams(location.search);
 
-function loadApi(url, elId) {
-  var prefetched = getPrefetchData(url);
+function getUrlParam(name, fallback) {
+  return urlParams.get(name) || fallback;
+}
+
+// ---------------------------------------------------------------------------
+// 1. API Prefetch 演示
+// ---------------------------------------------------------------------------
+
+log('应用启动，页面参数: ' + location.search);
+
+/**
+ * 通用数据加载函数。
+ * 优先从预取缓存中获取数据，未命中则降级为普通 fetch。
+ *
+ * @param {string} url     - 基础 URL
+ * @param {string} elId    - 用于展示结果的 DOM 元素 id
+ * @param {object} [params] - 查询参数（与 prefetch.config.js 中声明的 queryParams 对应）
+ */
+function loadApi(url, elId, params) {
+  var prefetched = getPrefetchData(url, { params: params });
   var fromCache = !!prefetched;
 
+  var fullUrl = buildUrl(url, params);
   var promise = prefetched
     ? prefetched
-    : fetch(url).then(function (r) { return r.json(); });
+    : fetch(fullUrl).then(function (r) { return r.json(); });
 
   return promise.then(function (data) {
     if (data) {
-      var preview = JSON.stringify(data).substring(0, 60);
+      var preview = JSON.stringify(data).substring(0, 80);
       setApiResult(elId, preview, fromCache);
-      log(url + ' &rarr; ' + (fromCache ? '<b>hit prefetch cache</b>' : 'normal fetch'));
+      log(fullUrl + ' &rarr; ' + (fromCache ? '<b>命中预取缓存</b>' : '普通 fetch'));
     }
     return { data: data, fromCache: fromCache };
   }).catch(function (err) {
-    log(url + ' error: ' + err.message);
+    log(fullUrl + ' 错误: ' + err.message);
     return { data: null, fromCache: false };
   });
 }
 
-loadApi('/api/user/info', 'api-user').then(function (result) {
+// /api/user/info —— queryParams 从 URL 取 userId、token
+loadApi('/api/user/info', 'api-user', {
+  userId: getUrlParam('userId', '1'),
+  token: getUrlParam('token', ''),
+}).then(function (result) {
   renderUserInfo(result.data);
 });
-loadApi('/api/settings', 'api-settings');
+
+// /api/settings —— 静态 params（与 prefetch.config.js 中 params 一致即可命中）
+loadApi('/api/settings', 'api-settings', { version: 2 });
 
 // ---------------------------------------------------------------------------
-// 2. Perf Reporter demo
+// 2. Perf Reporter 演示
 // ---------------------------------------------------------------------------
 
 var teardown = perfReporter.initPerfReporter({
@@ -88,7 +114,7 @@ var teardown = perfReporter.initPerfReporter({
   extra: { page: 'h5-demo', version: '1.0.0' },
 });
 
-log('perf-reporter initialized');
+log('perf-reporter 已初始化');
 
 var lastSeen = {};
 
@@ -101,7 +127,7 @@ var pollTimer = setInterval(function () {
       lastSeen[m.name] = key;
       updateMetricUI(m.name, m.value, m.rating);
       log(
-        (isUpdate ? '(updated) ' : '') +
+        (isUpdate ? '(更新) ' : '') +
         m.name + ': ' + m.value + (m.name === 'CLS' ? '' : ' ms') +
         ' (' + m.rating + ')'
       );
@@ -110,7 +136,7 @@ var pollTimer = setInterval(function () {
 }, 300);
 
 // ---------------------------------------------------------------------------
-// 3. Interactive button for INP testing
+// 3. 交互测试按钮（用于 INP 指标）
 // ---------------------------------------------------------------------------
 
 document.getElementById('btn-interact').addEventListener('click', function () {
@@ -120,10 +146,10 @@ document.getElementById('btn-interact').addEventListener('click', function () {
   var elapsed = Math.round(performance.now() - start);
 
   document.getElementById('btn-result').textContent =
-    'Blocked ' + elapsed + 'ms (now switch tab to see INP)';
+    '阻塞了 ' + elapsed + 'ms（切换标签页可查看 INP）';
 
   perfReporter.reportMetric('click-block-time', elapsed);
-  log('Button clicked, blocked main thread for ' + elapsed + 'ms');
+  log('按钮点击，主线程阻塞 ' + elapsed + 'ms');
 });
 
 window.addEventListener('beforeunload', function () {
