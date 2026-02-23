@@ -1,12 +1,17 @@
+var getPrefetchData = require('@toolkit/api-prefetch/client').getPrefetchData;
+
 console.log('App started!');
 
-// 模拟应用启动后的 API 调用
-setTimeout(() => {
+setTimeout(function () {
   console.log('App is now making regular API calls...');
-  
-  // 这些 API 可能已经被预请求缓存了
-  fetch('/api/user/info')
-    .then(res => res.json())
-    .then(data => console.log('User info:', data))
-    .catch(err => console.error('Error fetching user info:', err));
-}, 2000); 
+
+  var prefetched = getPrefetchData('/api/user/info');
+
+  var dataPromise = prefetched
+    ? prefetched
+    : fetch('/api/user/info').then(function (r) { return r.json(); });
+
+  dataPromise
+    .then(function (data) { console.log('User info:', data); })
+    .catch(function (err) { console.error('Error fetching user info:', err); });
+}, 2000);

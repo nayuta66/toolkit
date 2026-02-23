@@ -11,8 +11,9 @@
 该工具实现了前端接口的预请求功能，具有以下特点：
 
 - 在编译打包阶段，自动生成预请求相关代码
-- 通过 script 标签形式将生成的 JavaScript 代码注入到 HTML 的 head 部分
-- 使页面加载时即可提前发起 API 请求，有效减少用户等待时间
+- 通过 script 标签形式将生成的 JavaScript 代码注入到 HTML 中
+- 使页面加载时即可提前发起 API 请求，并将响应数据缓存到 `window.__PREFETCH_CACHE__`
+- 提供 `getPrefetchData()` 工具函数，应用代码可直接读取预取数据，无需重复请求
 - 优化首屏加载性能，提升用户体验
 
 ## 项目结构
@@ -21,10 +22,12 @@
 toolkit/
 ├── packages/              # 工具包目录
 │   └── api-prefetch/      # 接口预请求工具
-│       ├── src/           # 源代码
+│       └── src/
+│           ├── index.js   # Webpack 插件
+│           └── client.js  # 浏览器端工具函数
 ├── examples/              # 示例项目
-│   └── h5-demo/           # H5示例项目
-└── lerna.json             # Lerna配置
+│   └── h5-demo/           # H5 示例项目
+└── package.json           # 根配置（npm workspaces）
 ```
 
 ## 使用方法
@@ -32,19 +35,10 @@ toolkit/
 ### 安装依赖
 
 ```bash
-# 安装根项目依赖
 npm install
-
-# 安装所有子包依赖并链接相互依赖的本地包
-npm run start
 ```
 
-### 构建工具包
-
-```bash
-# 构建所有工具包
-npm run build
-```
+npm workspaces 会自动链接本地包，无需额外操作。
 
 ### 使用接口预请求工具
 
@@ -60,53 +54,72 @@ npm install @toolkit/api-prefetch --save
 const { ApiPrefetchPlugin } = require('@toolkit/api-prefetch');
 
 module.exports = {
-  // ... 其他webpack配置
   plugins: [
-    // ... 其他插件
     new ApiPrefetchPlugin({
       apis: [
         { url: '/api/user', method: 'GET' },
-        { 
-          url: '/api/data', 
+        {
+          url: '/api/data',
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: { id: 123 }
         }
       ],
-      injectTo: 'head', // 'head' 或 'body'
+      injectTo: 'head',
     }),
   ],
 };
 ```
 
-### 配置选项
+3. 在应用代码中读取预取数据
+
+```javascript
+var getPrefetchData = require('@toolkit/api-prefetch/client').getPrefetchData;
+
+// 返回缓存的 Promise，若无缓存则返回 null
+var cached = getPrefetchData('/api/user');
+
+if (cached) {
+  cached.then(function (data) {
+    console.log('来自预取缓存:', data);
+  });
+} else {
+  // 缓存未命中，正常请求
+  fetch('/api/user').then(function (r) { return r.json(); });
+}
+```
+
+### 插件配置选项
 
 | 选项 | 类型 | 默认值 | 描述 |
 |------|------|--------|------|
-| apis | Array | [] | API配置列表 |
-| enabled | Boolean | true | 是否启用插件 |
-| injectTo | String | 'head' | 注入位置，可选 'head' 或 'body' |
+| apis | Array | `[]` | API 配置列表 |
+| enabled | Boolean | `true` | 是否启用插件 |
+| injectTo | String | `'head'` | 注入位置，可选 `'head'` 或 `'body'` |
+| cacheKey | String | `'__PREFETCH_CACHE__'` | 全局缓存对象的 key |
 
-### API配置选项
+### API 配置选项
 
 | 选项 | 类型 | 默认值 | 描述 |
 |------|------|--------|------|
-| url | String | - | API请求地址（必填） |
-| method | String | 'GET' | 请求方法，支持 'GET' 或 'POST' |
-| headers | Object | {} | 请求头 |
-| body | Object/String | - | 请求体，仅在 POST 请求时有效 |
-| credentials | String | 'same-origin' | 凭证策略，可选 'include', 'same-origin', 'omit' |
+| url | String | - | API 请求地址（必填） |
+| method | String | `'GET'` | 请求方法 |
+| headers | Object | `{}` | 请求头 |
+| body | Object/String | - | 请求体（GET/HEAD 以外的方法有效） |
+| credentials | String | `'same-origin'` | 凭证策略 |
+
+### getPrefetchData 选项
+
+| 选项 | 类型 | 默认值 | 描述 |
+|------|------|--------|------|
+| cacheKey | String | `'__PREFETCH_CACHE__'` | 全局缓存对象的 key |
+| timeout | Number | `5000` | 超时时间（ms），设为 `0` 禁用 |
 
 ## 运行示例
 
 ```bash
-# 进入示例项目目录
 cd examples/h5-demo
-
-# 安装依赖
 npm install
-
-# 启动开发服务器
 npm start
 ```
 
@@ -117,5 +130,3 @@ npm start
 ## 许可证
 
 MIT
-
-

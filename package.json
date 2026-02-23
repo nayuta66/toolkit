@@ -7,15 +7,24 @@
     "packages/*"
   ],
   "scripts": {
-    "start": "lerna bootstrap",
-    "build": "lerna run build",
-    "clean": "lerna clean",
-    "test": "lerna run test"
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm test --workspaces --if-present",
+    "clean": "rm -rf packages/*/node_modules"
   },
-  "keywords": ["monorepo", "toolkit", "lerna"],
+  "keywords": [
+    "monorepo",
+    "toolkit"
+  ],
   "author": "",
   "license": "MIT",
+  "engines": {
+    "node": ">=14.15.0"
+  },
   "devDependencies": {
-    "lerna": "^8.2.2"
+    "@types/node": "^25.3.0",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
+    "webpack": "^5.105.2"
   }
 }

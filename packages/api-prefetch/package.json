@@ -3,13 +3,34 @@
   "version": "1.0.0",
   "description": "A webpack plugin for API prefetching to optimize page load performance",
   "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    },
+    "./client": {
+      "types": "./dist/client.d.ts",
+      "import": "./dist/client.mjs",
+      "require": "./dist/client.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
   "scripts": {
-    "build": "node build.js",
+    "build": "tsup src/index.ts src/client.ts --format cjs,esm --dts",
+    "typecheck": "tsc --noEmit",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": ["webpack", "plugin", "api", "prefetch", "performance"],
+  "keywords": ["webpack", "plugin", "api", "prefetch", "performance", "typescript"],
   "author": "",
   "license": "MIT",
+  "engines": {
+    "node": ">=14.15.0"
+  },
   "peerDependencies": {
     "webpack": "^4.0.0 || ^5.0.0",
     "html-webpack-plugin": "^4.0.0 || ^5.0.0"
