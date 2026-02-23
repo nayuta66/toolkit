@@ -1,14 +1,15 @@
 {
   "name": "h5-demo",
   "version": "1.0.0",
-  "description": "Demo project for api-prefetch plugin",
+  "description": "Demo project for @toolkit packages",
   "private": true,
   "scripts": {
     "start": "webpack serve --mode development",
     "build": "webpack --mode production"
   },
   "dependencies": {
-    "@toolkit/api-prefetch": "file:../../packages/api-prefetch"
+    "@toolkit/api-prefetch": "file:../../packages/api-prefetch",
+    "@toolkit/perf-reporter": "file:../../packages/perf-reporter"
   },
   "devDependencies": {
     "webpack": "^5.89.0",
@@ -16,4 +17,4 @@
     "webpack-dev-server": "^4.15.1",
     "html-webpack-plugin": "^5.5.3"
   }
-} 
+}

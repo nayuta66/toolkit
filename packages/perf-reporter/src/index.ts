@@ -4,6 +4,7 @@ import { observeMetrics } from './metrics';
 let initialized = false;
 let opts: NormalizedOptions;
 let buffer: MetricEntry[] = [];
+let history: MetricEntry[] = [];
 let cleanup: (() => void) | null = null;
 
 /**
@@ -38,6 +39,7 @@ export function initPerfReporter(options: PerfReporterOptions): () => void {
 
   const disconnect = observeMetrics((entry) => {
     buffer.push(entry);
+    history.push(entry);
     if (opts.debug) {
       console.log(`[perf-reporter] ${entry.name}: ${entry.value} (${entry.rating})`);
     }
@@ -54,6 +56,7 @@ export function initPerfReporter(options: PerfReporterOptions): () => void {
     disconnect();
     document.removeEventListener('visibilitychange', onHide);
     flush();
+    history = [];
     cleanup = null;
   };
 
@@ -73,7 +76,9 @@ export function reportMetric(
     console.warn('[perf-reporter] Not initialized. Call initPerfReporter() first.');
     return;
   }
-  buffer.push({ name, value, rating, timestamp: Date.now() });
+  const entry: MetricEntry = { name, value, rating, timestamp: Date.now() };
+  buffer.push(entry);
+  history.push(entry);
   if (opts.debug) {
     console.log(`[perf-reporter] ${name}: ${value} (${rating})`);
   }
@@ -81,10 +86,10 @@ export function reportMetric(
 }
 
 /**
- * Get a snapshot of currently buffered metrics (for debugging/testing).
+ * Get all collected metrics since initialization (unaffected by flush).
  */
 export function getMetrics(): MetricEntry[] {
-  return [...buffer];
+  return [...history];
 }
 
 function flush(): void {
